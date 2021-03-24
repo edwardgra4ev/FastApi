@@ -1,10 +1,9 @@
 from fastapi import Depends, HTTPException
 from sqlalchemy.orm import Session
 import Databese.sql_queries as crud
-from .shemas import schemas
-from api.main_app import application as app
-from api.main_app import get_db
-
+from schemas import schemas
+from application.main_app import application as app
+from application.main_app import get_db
 
 
 @app.post("/users/create/", name='Регистрация пользователя', response_model=schemas.UserCreateResponse)
@@ -23,6 +22,24 @@ def create_user(user: schemas.UserPassword,
     result = {'login': crud.create_user(db=db, user=user).login,
               'description': 'Account registered successfully'}
     return result
+
+
+@app.put("/users/datachange/", name='Изменение данных пользователя', response_model=schemas.ChangeUserDataresponse)
+def create_user(user: schemas.ChangeUserData,
+                db: Session = Depends(get_db)):
+    """Метод для изменения данных пользователя"""
+    # [23.03.2021 edwardgra4ev]
+    # :param user: Pydantic схема их schemas.ChangeUserData
+    # :param db: Новая сессия базы данных
+    # :return:
+    # 1) В случаи успеха, Pydantic схема из schemas.ChangeUserDataresponse содержащая логин и ответ о изменении данных
+    # 2) Если такого пользователя нет, возвращаем сообщение "Login not registered"
+    db_user = crud.get_user_by_login(db, login=user.login)
+    if db_user:
+        result = {'login': crud.update_username_or_password(db=db, user=user),
+                  'description': 'Account data successfully changed'}
+        return result
+    raise HTTPException(status_code=400, detail="Login not registered")
 
 
 @app.post("/users/createkey/", name='Регистрация ключа', response_model=schemas.UserKeyDatetimeCreation)
@@ -62,8 +79,16 @@ def get_all_user_key(user: schemas.UserLogin, db: Session = Depends(get_db)):
     else:
         raise HTTPException(status_code=400, detail="Login not found")
 
-@app.post('/users/deletekey/', name='Удалить ключ', response_model=schemas.DeleteKeyResult)
+
+@app.delete('/users/deletekey/', name='Удалить ключ', response_model=schemas.DeleteKeyResult)
 def delete_key(user: schemas.DeleteKey, db: Session = Depends(get_db)):
+    """Метод пудаления ключа пользователя"""
+    # [20.03.2021 edwardgra4ev]
+    # :param user: Pydantic схема их schemas.DeleteKey
+    # :param db: Новая сессия базы данных
+    # :return:
+    # 1) В случаи успеха, Pydantic схема из schemas.DeleteKeyResult содержащая ключ и описание
+    # 2) Если такого пользователя нет, возвращаем сообщение "Login not found", если нет ключа Key not found
     db_user = crud.get_user_by_login(db, login=user.login)
     if db_user:
         db_key = crud.search_user_key(db, key=user.key)

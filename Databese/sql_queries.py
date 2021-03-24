@@ -46,3 +46,18 @@ def create_user_key(db: Session, user_id: int):
 def get_user_all_key(db: Session, user_id: int):
     """Получить все ключи пользователя"""
     return db.query(models.UserKey).filter(models.UserKey.owner_id == user_id).all()
+
+def update_username_or_password(db: Session, user: schemas.ChangeUserData):
+    new_data = user.new_user_data
+    new_login, new_password = new_data[0].new_login, new_data[0].new_password
+
+    if new_password is not None:
+        salt = uuid.uuid4().hex
+        new_password = hashlib.sha256(salt.encode() + new_password.encode()).hexdigest() + ':' + salt
+        db.query(models.User).filter(models.User.login == user.login).update({'hashed_password': new_password})
+        db.commit()
+    if new_login is not None:
+        db.query(models.User).filter(models.User.login == user.login).update({'login': new_login})
+        db.commit()
+        return new_login
+    return user.login

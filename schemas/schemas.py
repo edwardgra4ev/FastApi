@@ -46,3 +46,20 @@ class User(UserPassword):
 
     class Config:
         orm_mode = True
+
+
+class ChangeUserDataresponse(BaseModel):
+    new_login: str
+    description: Optional[str]
+
+
+class NewUserData(BaseModel):
+    new_login: Optional[str]
+    new_password: Optional[str]
+
+
+class ChangeUserData(BaseModel):
+    login: str
+    password: str
+    new_user_data: List[NewUserData]
+
